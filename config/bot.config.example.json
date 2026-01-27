@@ -1,0 +1,26 @@
+{
+  "baseUrl": "https://www.stanley1913.com/",
+  "timeouts": {
+    "actionMs": 30000,
+    "navigationMs": 60000
+  },
+  "shipping": {
+    "email": "archit2693.aj@gmail.com",
+    "firstName": "Test",
+    "lastName": "User",
+    "address1": "123 Main St",
+    "address2": "Apt 4B",
+    "city": "Seattle",
+    "state": "Washington",
+    "postalCode": "98101",
+    "country": "United States",
+    "phone": "2065550123"
+  },
+  "payment": {
+    "nameOnCard": "TEST USER",
+    "cardNumber": "4242424242424242",
+    "expiry": "12/34",
+    "cvv": "123"
+  }
+}
+
