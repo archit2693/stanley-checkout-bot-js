@@ -37,7 +37,7 @@ async function clickFirstEnabledVariantButton(page) {
     );
     const target = preferred || btns[0];
     if (!target) return false;
-    target.scrollIntoView({ block: 'center', inline: 'center' });
+    target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' });
     target.click();
     return true;
   });

@@ -13,7 +13,7 @@ async function clickFirstProductTile(page) {
     });
     const first = links[0];
     if (!first) return false;
-    first.scrollIntoView({ block: 'center', inline: 'center' });
+    first.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' });
     first.click();
     return true;
   });

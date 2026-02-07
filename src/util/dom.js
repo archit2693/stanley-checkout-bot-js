@@ -68,7 +68,7 @@ async function clickModalClose(page) {
       });
       const target = byAria || byText;
       if (!target) return false;
-      target.scrollIntoView({ block: 'center', inline: 'center' });
+      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' });
       target.click();
       return true;
     })
@@ -104,7 +104,7 @@ async function clickFirstByText(
             if (!t) continue;
             const ok = wanted.some((w) => (exact ? t === w : t.includes(w)));
             if (!ok) continue;
-            el.scrollIntoView({ block: 'center', inline: 'center' });
+            el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' });
             el.click();
             return true;
           }
@@ -216,7 +216,7 @@ async function dismissOverlays(page) {
   for (const texts of common) {
     await clickFirstByText(page, texts, {
       selectors: ['button', 'input[type="button"]', 'input[type="submit"]'],
-      timeoutMs: 1500,
+      timeoutMs: 800,
     }).catch(() => {});
   }
 
@@ -231,10 +231,8 @@ async function dismissOverlays(page) {
       'button[data-testid*="close" i]',
       'button[class*="close" i]',
     ],
-    { timeoutMs: 1000 }
+    { timeoutMs: 500 }
   ).catch(() => {});
-
-  await clickModalClose(page).catch(() => {});
 }
 
 module.exports = {

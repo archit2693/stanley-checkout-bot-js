@@ -46,9 +46,7 @@ async function runWithProductUrl({ productUrl, confirmPurchase, headful, slowMo,
     await withStep(artifacts, page, 'openProductPage', async () => {
       const { dismissOverlays, waitForSettled } = require('./util/dom');
       await page.goto(productUrl, { waitUntil: 'domcontentloaded' });
-      await waitForSettled(page, { timeoutMs: 8000 });
-      await dismissOverlays(page);
-      await waitForSettled(page, { timeoutMs: 5000 }).catch(() => {});
+      await waitForSettled(page, { timeoutMs: 5000 });
       await dismissOverlays(page);
     });
 
