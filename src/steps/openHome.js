@@ -9,4 +9,3 @@ async function openHome(page, config) {
 }
 
 module.exports = { openHome };
-

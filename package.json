@@ -5,12 +5,14 @@
   "main": "src/cli.js",
   "scripts": {
     "start": "node src/cli.js --help",
-    "bot": "node src/cli.js"
+    "bot": "node src/cli.js",
+    "server": "node src/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "express": "^4.22.1",
     "puppeteer": "^24.36.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"

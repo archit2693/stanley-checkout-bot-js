@@ -163,7 +163,49 @@ async function clickFirstMatchingSelector(page, selectors, { timeoutMs = 15000 }
   throw new Error(`Could not click any selector: ${list.join(', ')}`);
 }
 
+async function dismissCookieConsent(page) {
+  await clickFirstByText(page, ['accept all cookies', 'accept all', 'accept cookies'], {
+    selectors: ['button', 'input[type="button"]', 'input[type="submit"]', 'a'],
+    timeoutMs: 2000,
+  }).catch(() => {});
+
+  await clickFirstMatchingSelector(
+    page,
+    [
+      '#onetrust-accept-btn-handler',
+      '.optanon-alert-box-button-middle',
+      '.cookie-accept-all',
+      '[id*="accept" i][id*="cookie" i]',
+      '[class*="accept" i][class*="cookie" i]',
+      '[data-testid*="accept" i][data-testid*="cookie" i]',
+    ],
+    { timeoutMs: 1500 }
+  ).catch(() => {});
+
+  await page
+    .evaluate(() => {
+      const cookieBanners = document.querySelectorAll(
+        '[class*="cookie" i], [id*="cookie" i], [class*="consent" i], [id*="consent" i]'
+      );
+      cookieBanners.forEach((el) => {
+        const buttons = el.querySelectorAll('button, a');
+        buttons.forEach((btn) => {
+          const text = (btn.innerText || btn.textContent || '').toLowerCase();
+          if (
+            text.includes('accept all') ||
+            text.includes('accept cookies') ||
+            (text.includes('accept') && text.includes('all'))
+          ) {
+            btn.click();
+          }
+        });
+      });
+    })
+    .catch(() => {});
+}
+
 async function dismissOverlays(page) {
+  await dismissCookieConsent(page);
   await clickModalClose(page).catch(() => {});
 
   const common = [
@@ -200,6 +242,7 @@ module.exports = {
   waitForSettled,
   clickFirstByText,
   clickFirstMatchingSelector,
+  dismissCookieConsent,
   dismissOverlays,
 };
 

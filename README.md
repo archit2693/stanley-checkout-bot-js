@@ -1,9 +1,10 @@
 # 🎭 Web Checkout Bot - Stanley
 
-> Automate the complete purchase flow on Stanley1913.com with a single command. Navigate, select products, fill forms, and checkout—all while you watch or sleep.
+> Automate the complete purchase flow on Stanley1913.com with a single command or HTTP API. Navigate, select products, fill forms, and checkout—all while you watch or sleep.
 
 ## 🚀 Quick Start
 
+### CLI Mode
 ```bash
 # Install dependencies
 npm install
@@ -16,8 +17,22 @@ cp config/bot.config.example.json config/bot.config.json
 npm run bot -- --headful --slowmo 100
 ```
 
+### HTTP Server Mode (for n8n/Zapier/Make)
+```bash
+npm run server
+
+# Local testing
+curl -X POST http://localhost:3000/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"productUrl": "https://www.stanley1913.com/products/...", "confirmPurchase": false}'
+
+# Deploy to Render.com (free): Push to GitHub, connect to Render, auto-deploys from render.yaml
+```
+
 ## ✨ Features
 
+- **Dual Mode Operation** - CLI for manual runs, HTTP server for automation workflows (n8n, Zapier, Make)
+- **Direct Product URL** - Start from any Stanley product page (HTTP mode)
 - **Complete Automation** - From homepage to checkout, handles the entire purchase flow
 - **Smart Element Detection** - Multiple selector strategies handle dynamic websites
 - **Overlay Management** - Automatically dismisses modals, popups, and cookie banners
