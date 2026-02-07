@@ -16,10 +16,6 @@ async function launchBrowser({ headful, slowMo }) {
     defaultViewport: { width: 1280, height: 800 },
   };
 
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-
   return puppeteer.launch(launchOptions);
 }
 
