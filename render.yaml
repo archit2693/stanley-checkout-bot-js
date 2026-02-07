@@ -1,14 +1,20 @@
+# Exported from Render on 2026-02-07T07:04:19Z
+version: "1"
 services:
-  - type: web
-    name: stanley-bot
-    env: node
-    buildCommand: npm install
-    startCommand: npm run server
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-      - key: BOT_CONFIG_PATH
-        value: /opt/render/project/src/bot.config.json
-    healthCheckPath: /health
+- type: web
+  name: stanley-checkout-bot-js
+  runtime: node
+  repo: https://github.com/archit2693/stanley-checkout-bot-js
+  plan: free
+  envVars:
+  - key: BOT_CONFIG_PATH
+    sync: false
+  - key: PORT
+    sync: false
+  - key: NODE_ENV
+    sync: false
+  region: oregon
+  buildCommand: npm install && npx puppeteer browsers install chrome
+  startCommand: npm run server
+  healthCheckPath: /health
+  autoDeployTrigger: commit

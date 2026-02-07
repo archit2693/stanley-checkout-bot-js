@@ -8,17 +8,14 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-let isProcessing = false;
+const jobs = new Map();
+let jobCounter = 0;
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', processing: isProcessing });
+  res.json({ status: 'ok', activeJobs: jobs.size });
 });
 
 app.post('/checkout', async (req, res) => {
-  if (isProcessing) {
-    return res.status(429).json({ error: 'Another checkout is in progress' });
-  }
-
   const { productUrl, confirmPurchase = false } = req.body;
 
   if (!productUrl || typeof productUrl !== 'string') {
@@ -30,40 +27,62 @@ app.post('/checkout', async (req, res) => {
   }
 
   const configPath = req.body.configPath || process.env.BOT_CONFIG_PATH || '';
+  const jobId = `job_${++jobCounter}_${Date.now()}`;
 
-  isProcessing = true;
+  console.log(`[${jobId}] Starting checkout for: ${productUrl}`);
+  jobs.set(jobId, { status: 'running', startedAt: new Date().toISOString() });
 
-  try {
-    const result = await runWithProductUrl({
-      productUrl,
-      confirmPurchase: Boolean(confirmPurchase),
-      headful: false,
-      slowMo: 0,
-      configPath,
-    });
+  res.json({
+    jobId,
+    status: 'running',
+    message: 'Checkout started in background',
+    statusUrl: `/status/${jobId}`,
+  });
 
-    res.json({
-      success: true,
-      artifactsPath: result.artifactsPath,
-      message: confirmPurchase
-        ? 'Checkout completed'
-        : 'Checkout stopped before final submission (safe mode)',
+  runWithProductUrl({
+    productUrl,
+    confirmPurchase: Boolean(confirmPurchase),
+    headful: false,
+    slowMo: 0,
+    configPath,
+  })
+    .then((result) => {
+      console.log(`[${jobId}] Completed successfully. Artifacts: ${result.artifactsPath}`);
+      jobs.set(jobId, {
+        status: 'completed',
+        artifactsPath: result.artifactsPath,
+        completedAt: new Date().toISOString(),
+        message: confirmPurchase
+          ? 'Checkout completed'
+          : 'Checkout stopped before final submission (safe mode)',
+      });
+    })
+    .catch((error) => {
+      console.error(`[${jobId}] Failed:`, error.message);
+      console.error(`[${jobId}] Stack:`, error.stack);
+      jobs.set(jobId, {
+        status: 'failed',
+        error: error.message,
+        stack: error.stack,
+        completedAt: new Date().toISOString(),
+      });
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    });
-  } finally {
-    isProcessing = false;
+});
+
+app.get('/status/:jobId', (req, res) => {
+  const job = jobs.get(req.params.jobId);
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
   }
+  res.json(job);
 });
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Stanley Bot Server running on http://localhost:${PORT}`);
-  console.log(`📋 Health: GET http://localhost:${PORT}/health`);
-  console.log(`🛒 Checkout: POST http://localhost:${PORT}/checkout`);
+  console.log(`📋 Health: GET /health`);
+  console.log(`🛒 Checkout: POST /checkout`);
+  console.log(`📊 Status: GET /status/:jobId`);
+  console.log(`Config path: ${process.env.BOT_CONFIG_PATH || 'Not set'}`);
 });
 
 process.on('SIGTERM', () => {
