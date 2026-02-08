@@ -12,24 +12,26 @@ async function run({ headful, slowMo, confirmPurchase, configPath }) {
   page.setDefaultTimeout(config.timeouts?.actionMs ?? 30000);
   page.setDefaultNavigationTimeout(config.timeouts?.navigationMs ?? 60000);
 
+  const retry = { retries: 1, retryDelayMs: 2000 };
+
   try {
     await withStep(artifacts, page, 'openHome', () => steps.openHome(page, config));
     await withStep(artifacts, page, 'openShop', () => steps.openShopMenu(page, config));
     await withStep(artifacts, page, 'selectProduct', () => steps.selectAnyTumblerOrCup(page, config));
-    await withStep(artifacts, page, 'addToCart', () => steps.addToCart(page, config));
-    await withStep(artifacts, page, 'goToCheckout', () => steps.goToCheckout(page, config));
+    await withStep(artifacts, page, 'addToCart', () => steps.addToCart(page, config), retry);
+    await withStep(artifacts, page, 'goToCheckout', () => steps.goToCheckout(page, config), retry);
     await withStep(artifacts, page, 'fillShipping', () =>
-      steps.fillContactAndShipping(page, config)
+      steps.fillContactAndShipping(page, config), retry
     );
     await withStep(artifacts, page, 'continueToPayment', () =>
-      steps.continueToPayment(page, config)
+      steps.continueToPayment(page, config), retry
     );
-    await withStep(artifacts, page, 'fillPayment', () => steps.fillPayment(page, config));
+    await withStep(artifacts, page, 'fillPayment', () => steps.fillPayment(page, config), { retries: 2, retryDelayMs: 3000 });
     await withStep(artifacts, page, 'submitOrderAttempt', () =>
       steps.submitOrderAttempt(page, config, { confirmPurchase })
     );
   } finally {
-    await browser.close().catch(() => {});
+    await browser.close().catch(() => { });
   }
 }
 
@@ -42,30 +44,32 @@ async function runWithProductUrl({ productUrl, confirmPurchase, headful, slowMo,
   page.setDefaultTimeout(config.timeouts?.actionMs ?? 30000);
   page.setDefaultNavigationTimeout(config.timeouts?.navigationMs ?? 60000);
 
+  const retry = { retries: 1, retryDelayMs: 2000 };
+
   try {
     await withStep(artifacts, page, 'openProductPage', async () => {
       const { dismissOverlays, waitForSettled } = require('./util/dom');
       await page.goto(productUrl, { waitUntil: 'domcontentloaded' });
-      await waitForSettled(page, { timeoutMs: 5000 });
+      await waitForSettled(page, { timeoutMs: 8000 });
       await dismissOverlays(page);
     });
 
-    await withStep(artifacts, page, 'addToCart', () => steps.addToCart(page, config));
-    await withStep(artifacts, page, 'goToCheckout', () => steps.goToCheckout(page, config));
+    await withStep(artifacts, page, 'addToCart', () => steps.addToCart(page, config), retry);
+    await withStep(artifacts, page, 'goToCheckout', () => steps.goToCheckout(page, config), retry);
     await withStep(artifacts, page, 'fillShipping', () =>
-      steps.fillContactAndShipping(page, config)
+      steps.fillContactAndShipping(page, config), retry
     );
     await withStep(artifacts, page, 'continueToPayment', () =>
-      steps.continueToPayment(page, config)
+      steps.continueToPayment(page, config), retry
     );
-    await withStep(artifacts, page, 'fillPayment', () => steps.fillPayment(page, config));
+    await withStep(artifacts, page, 'fillPayment', () => steps.fillPayment(page, config), { retries: 2, retryDelayMs: 3000 });
     await withStep(artifacts, page, 'submitOrderAttempt', () =>
       steps.submitOrderAttempt(page, config, { confirmPurchase })
     );
 
     return { artifactsPath: artifacts.dir };
   } finally {
-    await browser.close().catch(() => {});
+    await browser.close().catch(() => { });
   }
 }
 

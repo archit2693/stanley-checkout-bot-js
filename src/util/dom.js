@@ -18,23 +18,45 @@ function isRecoverableExecutionError(err) {
   );
 }
 
-async function waitForSettled(page, { idleMs = 500, useNetworkIdle = false, timeoutMs = 8000 } = {}) {
-  if (!useNetworkIdle) {
-    await sleep(idleMs);
-    return;
+async function waitForSettled(page, { idleMs = 500, timeoutMs = 8000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+
+  if (typeof page.waitForNetworkIdle === 'function') {
+    const remaining = Math.max(deadline - Date.now(), 500);
+    await page
+      .waitForNetworkIdle({ idleTime: Math.min(idleMs, 300), timeout: remaining })
+      .catch(() => {});
   }
 
-  const has = typeof page.waitForNetworkIdle === 'function';
-  if (!has) {
-    await sleep(idleMs);
-    return;
-  }
+  const domStableMs = Math.min(idleMs, 400);
+  await page
+    .evaluate(
+      (ms) =>
+        new Promise((resolve) => {
+          let timer = setTimeout(resolve, ms);
+          const obs = new MutationObserver(() => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+              obs.disconnect();
+              resolve();
+            }, ms);
+          });
+          obs.observe(document.body || document.documentElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+          });
+          setTimeout(() => {
+            obs.disconnect();
+            resolve();
+          }, ms * 5);
+        }),
+      domStableMs
+    )
+    .catch(() => {});
 
-  try {
-    await page.waitForNetworkIdle({ idleTime: idleMs, timeout: timeoutMs });
-  } catch (_) {
-    await sleep(idleMs);
-  }
+  const leftover = Math.max(deadline - Date.now(), 0);
+  if (leftover > 0 && leftover < idleMs) await sleep(leftover);
 }
 
 async function clickModalClose(page) {
@@ -133,7 +155,7 @@ async function clickFirstMatchingSelector(page, selectors, { timeoutMs = 15000 }
     try {
       const el = await page.$(sel);
       if (!el) continue;
-      await el.click().catch(() => {});
+      await el.click().catch(() => { });
       return true;
     } catch (err) {
       if (isRecoverableExecutionError(err)) break;
@@ -147,7 +169,7 @@ async function clickFirstMatchingSelector(page, selectors, { timeoutMs = 15000 }
       try {
         const el = await page.$(sel);
         if (!el) continue;
-        await el.click().catch(() => {});
+        await el.click().catch(() => { });
         return true;
       } catch (err) {
         if (isRecoverableExecutionError(err)) {
@@ -167,7 +189,7 @@ async function dismissCookieConsent(page) {
   await clickFirstByText(page, ['accept all cookies', 'accept all', 'accept cookies'], {
     selectors: ['button', 'input[type="button"]', 'input[type="submit"]', 'a'],
     timeoutMs: 2000,
-  }).catch(() => {});
+  }).catch(() => { });
 
   await clickFirstMatchingSelector(
     page,
@@ -180,7 +202,7 @@ async function dismissCookieConsent(page) {
       '[data-testid*="accept" i][data-testid*="cookie" i]',
     ],
     { timeoutMs: 1500 }
-  ).catch(() => {});
+  ).catch(() => { });
 
   await page
     .evaluate(() => {
@@ -201,12 +223,14 @@ async function dismissCookieConsent(page) {
         });
       });
     })
-    .catch(() => {});
+    .catch(() => { });
 }
 
-async function dismissOverlays(page) {
+async function dismissOverlays(page, { gentle = false } = {}) {
   await dismissCookieConsent(page);
   await clickModalClose(page).catch(() => {});
+
+  if (gentle) return;
 
   const common = [
     ['accept', 'agree', 'ok', 'got it'],
@@ -236,6 +260,7 @@ async function dismissOverlays(page) {
 }
 
 module.exports = {
+  sleep,
   normalizeText,
   waitForSettled,
   clickFirstByText,

@@ -44,18 +44,30 @@ async function createRunArtifacts() {
   return { dir, log, savePageSnapshot };
 }
 
-async function withStep(artifacts, page, stepName, fn) {
-  await artifacts.log(`STEP start: ${stepName}`);
-  try {
-    const out = await fn();
-    await artifacts.savePageSnapshot(page, `step_${stepName}_ok`);
-    await artifacts.log(`STEP ok: ${stepName}`);
-    return out;
-  } catch (err) {
-    await artifacts.savePageSnapshot(page, `step_${stepName}_error`);
-    await artifacts.log(`STEP error: ${stepName} - ${err?.message || err}`);
-    throw err;
+async function withStep(artifacts, page, stepName, fn, { retries = 0, retryDelayMs = 2000 } = {}) {
+  const maxAttempts = 1 + retries;
+  let lastErr;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const label = maxAttempts > 1 ? `${stepName} [${attempt}/${maxAttempts}]` : stepName;
+    await artifacts.log(`STEP start: ${label}`);
+    try {
+      const out = await fn();
+      await artifacts.savePageSnapshot(page, `step_${stepName}_ok`);
+      await artifacts.log(`STEP ok: ${label}`);
+      return out;
+    } catch (err) {
+      lastErr = err;
+      await artifacts.savePageSnapshot(page, `step_${stepName}_error_${attempt}`);
+      await artifacts.log(`STEP error: ${label} - ${err?.message || err}`);
+      if (attempt < maxAttempts) {
+        await artifacts.log(`STEP retry: ${stepName} in ${retryDelayMs}ms`);
+        await new Promise((r) => setTimeout(r, retryDelayMs));
+      }
+    }
   }
+
+  throw lastErr;
 }
 
 module.exports = { createRunArtifacts, withStep };

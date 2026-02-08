@@ -2,7 +2,7 @@ const { clickFirstByText, dismissOverlays, waitForSettled } = require('../util/d
 
 async function openShopMenu(page) {
   await dismissOverlays(page);
-  await page.waitForSelector('header, nav', { timeout: 20000 }).catch(() => {});
+  await page.waitForSelector('header, nav', { timeout: 20000 }).catch(() => { });
 
   const did = await page
     .evaluate(() => {
@@ -41,7 +41,7 @@ async function openShopMenu(page) {
     });
   }
 
-  await waitForSettled(page, { timeoutMs: 30000 }).catch(() => {});
+  await waitForSettled(page, { timeoutMs: 30000 }).catch(() => { });
 }
 
 module.exports = { openShopMenu };

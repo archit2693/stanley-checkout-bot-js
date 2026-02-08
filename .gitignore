@@ -3,3 +3,4 @@ artifacts/
 config/bot.config.json
 .cursor/
 .env
+.cache/

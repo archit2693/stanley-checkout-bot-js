@@ -18,7 +18,7 @@ async function selectFirstOptionFromSelects(page) {
 }
 
 async function clickFirstEnabledVariantButton(page) {
-  const did = await page.evaluate(() => {
+  return page.evaluate(() => {
     const isVisible = (el) => {
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0;
@@ -41,11 +41,11 @@ async function clickFirstEnabledVariantButton(page) {
     target.click();
     return true;
   });
-  return did;
 }
 
 async function addToCart(page) {
   await dismissOverlays(page);
+  await waitForSettled(page, { idleMs: 400, timeoutMs: 3000 });
   await selectFirstOptionFromSelects(page);
   await clickFirstEnabledVariantButton(page).catch(() => {});
 
@@ -54,8 +54,7 @@ async function addToCart(page) {
     timeoutMs: 20000,
   });
 
-  await waitForSettled(page, { idleMs: 600, timeoutMs: 2500 }).catch(() => {});
+  await waitForSettled(page, { idleMs: 800, timeoutMs: 5000 });
 }
 
 module.exports = { addToCart };
-

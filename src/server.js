@@ -16,7 +16,7 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/checkout', async (req, res) => {
-  const { productUrl, confirmPurchase = false } = req.body;
+  const { productUrl, confirmPurchase = false, headful = false, slowMo = 0 } = req.body;
 
   if (!productUrl || typeof productUrl !== 'string') {
     return res.status(400).json({ error: 'productUrl is required' });
@@ -29,7 +29,7 @@ app.post('/checkout', async (req, res) => {
   const configPath = req.body.configPath || process.env.BOT_CONFIG_PATH || '';
   const jobId = `job_${++jobCounter}_${Date.now()}`;
 
-  console.log(`[${jobId}] Starting checkout for: ${productUrl}`);
+  console.log(`[${jobId}] Starting checkout for: ${productUrl} (headful: ${headful})`);
   jobs.set(jobId, { status: 'running', startedAt: new Date().toISOString() });
 
   res.json({
@@ -42,8 +42,8 @@ app.post('/checkout', async (req, res) => {
   runWithProductUrl({
     productUrl,
     confirmPurchase: Boolean(confirmPurchase),
-    headful: false,
-    slowMo: 0,
+    headful: Boolean(headful),
+    slowMo: Number(slowMo) || 0,
     configPath,
   })
     .then((result) => {

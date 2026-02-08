@@ -117,10 +117,11 @@ async function checkFirstRadioByName(page, name) {
 }
 
 async function clickContinue(page) {
-  await clickFirstByText(page, ['continue to shipping', 'continue to delivery', 'continue'], {
-    selectors: ['button', 'input[type="submit"]'],
-    timeoutMs: 20000,
-  });
+  await clickFirstByText(
+    page,
+    ['continue to shipping', 'continue to delivery', 'continue to payment', 'continue'],
+    { selectors: ['button', 'input[type="submit"]'], timeoutMs: 20000 }
+  );
 }
 
 module.exports = { setNativeValue, typeInto, selectByLabelOrValue, checkFirstRadioByName, clickContinue };

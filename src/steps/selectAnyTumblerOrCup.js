@@ -27,15 +27,15 @@ async function selectAnyTumblerOrCup(page) {
     page,
     ['tumblers', 'tumbler', 'quenchers', 'quencher', 'drinkware', 'cups'],
     { selectors: ['a', 'button'], timeoutMs: 15000 }
-  ).catch(() => {});
+  ).catch(() => { });
 
-  await waitForSettled(page, { idleMs: 400, timeoutMs: 2000 }).catch(() => {});
+  await waitForSettled(page, { idleMs: 400, timeoutMs: 2000 }).catch(() => { });
 
   const onProduct = page.url().includes('/products/');
   if (!onProduct) {
-    await page.waitForSelector('a[href*="/products/"]', { timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('a[href*="/products/"]', { timeout: 15000 }).catch(() => { });
     await clickFirstProductTile(page);
-    await waitForSettled(page, { idleMs: 500, timeoutMs: 2500 }).catch(() => {});
+    await waitForSettled(page, { idleMs: 500, timeoutMs: 2500 }).catch(() => { });
   }
 }
 

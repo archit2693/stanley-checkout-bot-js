@@ -3,48 +3,22 @@ const { setNativeValue, typeInto, selectByLabelOrValue, clickContinue } = requir
 
 async function waitForAnySelector(page, selectors, timeoutMs) {
   const list = Array.isArray(selectors) ? selectors : [selectors];
-  await Promise.race(
-    list.map((sel) => page.waitForSelector(sel, { timeout: timeoutMs }).catch(() => null))
-  );
-}
-
-async function setAnyVisibleSelectByOption(page, wanted) {
-  const did = await page
-    .evaluate((wanted) => {
-      const norm = (s) => String(s || '').trim().toLowerCase();
-      const isVisible = (el) => {
-        const r = el.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      };
-      const target = norm(wanted);
-      const selects = Array.from(document.querySelectorAll('select')).filter(
-        (s) => isVisible(s) && !s.disabled
-      );
-      for (const s of selects) {
-        const opts = Array.from(s.options || []);
-        const opt =
-          opts.find((o) => norm(o.value) === target) ||
-          opts.find((o) => norm(o.label || o.textContent) === target) ||
-          opts.find((o) => norm(o.label || o.textContent).includes(target));
-        if (!opt) continue;
-        s.value = opt.value;
-        s.dispatchEvent(new Event('change', { bubbles: true }));
-        return true;
-      }
-      return false;
-    }, wanted)
-    .catch(() => false);
-
-  return did;
+  const result = await Promise.race([
+    ...list.map((sel) => page.waitForSelector(sel, { timeout: timeoutMs }).then(() => true).catch(() => null)),
+    new Promise((r) => setTimeout(() => r(null), timeoutMs)),
+  ]);
+  return !!result;
 }
 
 async function fillContactAndShipping(page, config) {
   await dismissOverlays(page);
-  await waitForAnySelector(
+
+  const found = await waitForAnySelector(
     page,
     ['input#email', 'input[name="email"]', 'input[autocomplete="email"]', 'input[name="checkout[email]"]'],
     20000
   );
+  if (!found) throw new Error('Email field not found on checkout page');
 
   const s = config.shipping;
   await typeInto(
@@ -86,6 +60,8 @@ async function fillContactAndShipping(page, config) {
     ],
     s.address1
   );
+  await page.keyboard.press('Escape').catch(() => {});
+  await new Promise((r) => setTimeout(r, 300));
 
   if (s.address2) {
     await typeInto(
@@ -129,13 +105,10 @@ async function fillContactAndShipping(page, config) {
   await selectByLabelOrValue(page, ['select[name*="country"]'], { label: s.country }).catch(() => {});
 
   if (s.state) {
-    await waitForAnySelector(
-      page,
-      ['select[name="zone"]', '#Select3', 'select[autocomplete="shipping address-level1"]'],
-      20000
-    );
+    const zoneSelectors = ['select[name="zone"]', '#Select3', 'select[autocomplete="shipping address-level1"]'];
+    await waitForAnySelector(page, zoneSelectors, 20000);
 
-    const zoneSelector = 'select[name="zone"], #Select3, select[autocomplete="shipping address-level1"]';
+    const zoneSelector = zoneSelectors.join(', ');
     const zoneValue = await page
       .evaluate(
         ({ sel, wanted }) => {
@@ -173,53 +146,41 @@ async function fillContactAndShipping(page, config) {
       await selectByLabelOrValue(page, [zoneSelector], { label: s.state }).catch(() => {});
     }
 
-    await waitForSettled(page, { idleMs: 350, timeoutMs: 1000 }).catch(() => {});
+    await waitForSettled(page, { idleMs: 500, timeoutMs: 2000 });
 
     const stateOk = await page
       .evaluate((sel) => {
         const el = document.querySelector(sel);
-        if (!el) return false;
-        const v = String(el.value || '').trim();
-        return v.length > 0;
+        return el ? String(el.value || '').trim().length > 0 : false;
       }, zoneSelector)
       .catch(() => false);
 
     if (!stateOk) throw new Error('State selection failed');
   }
 
-  await typeInto(
-    page,
-    [
-      'input[name*="phone"]',
-      'input[placeholder="Phone"]',
-      'input[autocomplete="shipping tel"]',
-      'input[name="checkout[shipping_address][phone]"]',
-      'input[autocomplete="tel"]',
-    ],
-    s.phone
-  ).catch(() => {});
+  const phoneSelectors = [
+    'input[name*="phone"]',
+    'input[placeholder="Phone"]',
+    'input[autocomplete="shipping tel"]',
+    'input[name="checkout[shipping_address][phone]"]',
+    'input[autocomplete="tel"]',
+  ];
 
-  await setNativeValue(
-    page,
-    [
-      'input[name*="phone"]',
-      'input[placeholder="Phone"]',
-      'input[autocomplete="shipping tel"]',
-      'input[name="checkout[shipping_address][phone]"]',
-      'input[autocomplete="tel"]',
-    ],
-    String(s.phone).replace(/[^\d+]/g, '')
-  ).catch(() => {});
+  const phoneTyped = await typeInto(page, phoneSelectors, s.phone).catch(() => false);
+  if (!phoneTyped) {
+    await setNativeValue(page, phoneSelectors, String(s.phone).replace(/[^\d+]/g, '')).catch(() => {});
+  }
 
-  await waitForSettled(page, { idleMs: 250, timeoutMs: 1000 }).catch(() => {});
+  await waitForSettled(page, { idleMs: 400, timeoutMs: 2000 });
 
   await clickContinue(page);
+
   await Promise.race([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {}),
-    page
-      .waitForFunction(() => !location.pathname.includes('/information'), { timeout: 30000 })
-      .catch(() => {}),
-  ]);
+    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+    page.waitForFunction(() => !location.pathname.includes('/information'), { timeout: 30000 }),
+  ]).catch(() => {});
+
+  await waitForSettled(page, { idleMs: 500, timeoutMs: 3000 });
 
   if (page.url().includes('/information')) {
     throw new Error('Checkout did not advance past Information (validation likely failed)');
@@ -227,4 +188,3 @@ async function fillContactAndShipping(page, config) {
 }
 
 module.exports = { fillContactAndShipping };
-

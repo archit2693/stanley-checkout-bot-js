@@ -21,12 +21,22 @@ npm run bot -- --headful --slowmo 100
 ```bash
 npm run server
 
-# Local testing
+# Local testing (headless)
 curl -X POST http://localhost:3000/checkout \
   -H "Content-Type: application/json" \
-  -d '{"productUrl": "https://www.stanley1913.com/products/...", "confirmPurchase": false}'
+  -d '{"productUrl": "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz", "confirmPurchase": false}'
+
+# With visible browser
+curl -X POST http://localhost:3000/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"productUrl": "https://www.stanley1913.com/products/adventure-quencher-travel-tumbler-40-oz", "confirmPurchase": false, "headful": true, "slowMo": 100}'
 
 # Deploy to Render.com (free): Push to GitHub, connect to Render, auto-deploys from render.yaml
+
+# Expose locally with ngrok (for testing webhooks/external access)
+npm run server
+# In another terminal:
+ngrok http 3000
 ```
 
 ## ✨ Features
